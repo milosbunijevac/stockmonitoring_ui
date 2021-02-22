@@ -1,0 +1,15 @@
+module.exports = {
+  "prettier.arrowParens": "always",
+  "prettier.bracketSpacing": true,
+  "prettier.enable": true,
+  "prettier.endOfLine": "lf",
+  "prettier.htmlWhitespaceSensitivity": "css",
+  "prettier.ignorePath": ".prettierignore",
+  "prettier.printWidth": 80,
+  "prettier.quoteProps": "as-needed",
+  "prettier.semi": true,
+  "prettier.singleQuote": true,
+  "prettier.tabWidth": 2,
+  "prettier.trailingComma": "all",
+  "prettier.useEditorConfig": true,
+};
