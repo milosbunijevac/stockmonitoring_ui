@@ -1,70 +1,85 @@
-import React from "react";
-import Grid from "@material-ui/core/Grid";
-import PropTypes from "prop-types";
-// import { data } from "../Data/Data";
+import React, { useEffect } from "react";
 // @ts-ignore
 import { ChartCanvas, Chart } from "react-stockcharts";
 // @ts-ignore
+import { CandlestickSeries } from "react-stockcharts/lib/series";
+// @ts-ignore
 import { XAxis, YAxis } from "react-stockcharts/lib/axes";
 // @ts-ignore
+import { discontinuousTimeScaleProvider } from "react-stockcharts/lib/scale";
+// @ts-ignore
 import { fitWidth } from "react-stockcharts/lib/helper";
-// import { CandlestickSeries } from "react-stockcharts/lib/series";
-// import { utcDay } from "d3-time-format";
-// import { timeIntervalBarWidth } from "react-stockcharts/lib/utils";
+// @ts-ignore
+import { last } from "react-stockcharts/lib/utils";
 
-// type SvgInHtml = HTMLElement & SVGElement;
+import PropTypes from "prop-types";
+
+import { getApiInfo } from "../../../utilities/apiCall";
 
 interface StockGraphProps {
-  type: SVGElement;
   width: number;
   ratio: number;
 }
 
-const Stockgraph: React.FC<StockGraphProps> = (props: StockGraphProps) => {
-  const { type, width, ratio } = props;
-  // const madeData = data;
+const StockGraph: React.FC<StockGraphProps> = (props) => {
+  const [useData, setUseData] = React.useState([] as string[]);
+  const { width = 400, ratio = 1 } = props;
 
-  // const xAccessor = (d: number) => {
-  //   return d.date;
-  // };
+  useEffect(() => {
+    const getStockData = async () => {
+      // const stockData: string[] = await getApiInfo();
+      setUseData(stockData);
+    };
 
-  return (
-    <>
-      <Grid container direction="row" justify="center">
-        <Grid item xs={3} />
-        <Grid item xs={5} container justify="center">
-          <ChartCanvas
-            height={400}
-            ratio={ratio}
-            width={width}
-            margin={{ left: 50, right: 50, top: 10, bottom: 30 }}
-            type={type}
-            seriesName="MSFT"
-            // xAccessor={xAccessor}
-            // xScale={scaleTime()}
-            xExtents={[new Date(2020, 0, 30), new Date(2020, 1, 16)]}
-          >
-            {/* <Chart id={1} yExtents={(d) => [d.high, d.low]}>
-              <XAxis axisAt="bottom" orient="bottom" ticks={6} />
-              <YAxis axisAt="left" orient="left" ticks={5} />
-            </Chart> */}
-          </ChartCanvas>
-        </Grid>
-        <Grid item xs={3} />
-      </Grid>
-    </>
+    getStockData();
+  }, []);
+
+  const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(
+    // @ts-ignore
+    (d) => d.date
   );
+  const { data, xScale, xAccessor, displayXAccessor } = xScaleProvider(useData);
+  const xExtents = [xAccessor(last(data)), xAccessor(data[data.length - 100])];
+
+  console.log("This is useData: ", useData);
+  if (useData.length > 0) {
+    return (
+      <div>
+        <ChartCanvas
+          width={width}
+          height={400}
+          ratio={ratio}
+          xScale={xScale}
+          margin={{ left: 50, right: 50, top: 10, bottom: 30 }}
+          displayXAccessor={displayXAccessor}
+          type={"svg"}
+          seriesName="MSFT"
+          data={data}
+          // @ts-ignore
+          xAccessor={(d) => d.date}
+          xScaleProvider={discontinuousTimeScaleProvider}
+          xExtents={xExtents}
+        >
+          {/* @ts-ignore */}
+          <Chart id={1} yExtents={(d) => [d.high, d.low]}>
+            <XAxis axisAt="bottom" orient="bottom" ticks={6} />
+            <YAxis axisAt="left" orient="left" ticks={5} />
+            <CandlestickSeries />
+          </Chart>
+        </ChartCanvas>
+        See graph?
+      </div>
+    );
+  } else {
+    return <div>Loading...</div>;
+  }
 };
 
-Stockgraph.propTypes = {
+StockGraph.propTypes = {
   // data: PropTypes.array.isRequired,
   width: PropTypes.number.isRequired,
   ratio: PropTypes.number.isRequired,
   // type: PropTypes.oneOf(["svg", "hybrid"]).isRequired,
 };
 
-// Stockgraph.defaultProps = {
-//   type: "svg",
-// };
-
-export default fitWidth(Stockgraph);
+export default fitWidth(StockGraph);
