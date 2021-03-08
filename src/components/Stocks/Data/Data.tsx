@@ -389,7 +389,7 @@ export const data = [
     open: 32.4,
     high: 27,
     low: 28,
-    close: 33.4,
+    close: 50.4,
     volume: 594858493,
   },
 ];

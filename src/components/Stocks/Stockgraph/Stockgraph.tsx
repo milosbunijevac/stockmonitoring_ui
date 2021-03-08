@@ -1,74 +1,150 @@
 import React, { useEffect } from "react";
-// @ts-ignore
-import { ChartCanvas, Chart } from "react-stockcharts";
-// @ts-ignore
-import { CandlestickSeries } from "react-stockcharts/lib/series";
-// @ts-ignore
-import { XAxis, YAxis } from "react-stockcharts/lib/axes";
-// @ts-ignore
-import { discontinuousTimeScaleProvider } from "react-stockcharts/lib/scale";
-// @ts-ignore
-import { fitWidth } from "react-stockcharts/lib/helper";
-// @ts-ignore
-import { last } from "react-stockcharts/lib/utils";
-
+import {
+  elderRay,
+  ema,
+  discontinuousTimeScaleProviderBuilder,
+  Chart,
+  ChartCanvas,
+  BarSeries,
+  CandlestickSeries,
+  lastVisibleItemBasedZoomAnchor,
+  XAxis,
+  YAxis,
+  CrossHairCursor,
+} from "react-financial-charts";
+import { format } from "d3-format";
+// import { timeFormat } from "d3-time-format";
 import PropTypes from "prop-types";
+import { data as sampleData } from "../Data/Data";
 
 import { getApiInfo } from "../../../utilities/apiCall";
 
-interface StockGraphProps {
-  width: number;
-  ratio: number;
+export interface IOHLCData {
+  readonly close: number;
+  readonly date: Date;
+  readonly high: number;
+  readonly low: number;
+  readonly open: number;
+  readonly volume: number;
 }
 
+interface StockGraphProps {
+  readonly height?: number;
+  readonly dateTimeFormat?: string;
+  readonly width?: number;
+  readonly ratio?: number;
+}
+
+// Need to parse the data correctly here.
+
 const StockGraph: React.FC<StockGraphProps> = (props) => {
-  const [useData, setUseData] = React.useState([] as string[]);
-  const { width = 400, ratio = 1 } = props;
+  const [useData, setUseData] = React.useState<any>(sampleData);
 
   useEffect(() => {
     const getStockData = async () => {
       // const stockData: string[] = await getApiInfo();
-      setUseData(stockData);
+      const data = await getApiInfo();
+      // console.log("this is data: ", data);
+      setUseData(data);
     };
 
     getStockData();
   }, []);
 
-  const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(
-    // @ts-ignore
-    (d) => d.date
-  );
-  const { data, xScale, xAccessor, displayXAccessor } = xScaleProvider(useData);
-  const xExtents = [xAccessor(last(data)), xAccessor(data[data.length - 100])];
+  const { height = 1000, ratio = 3, width = 1000 } = props;
 
-  console.log("This is useData: ", useData);
-  if (useData.length > 0) {
+  const margin = { left: 0, right: 48, top: 0, bottom: 24 };
+  const pricesDisplayFormat = format(".2f");
+  const xScaleProvider = discontinuousTimeScaleProviderBuilder().inputDateAccessor(
+    (d: IOHLCData) => d.date
+  );
+
+  const ema12 = ema()
+    .id(1)
+    .options({ windowSize: 12 })
+    .merge((d: any, c: any) => {
+      d.ema12 = c;
+    })
+    .accessor((d: any) => d.ema12);
+
+  const ema26 = ema()
+    .id(2)
+    .options({ windowSize: 26 })
+    .merge((d: any, c: any) => {
+      d.ema26 = c;
+    })
+    .accessor((d: any) => d.ema26);
+
+  const elder = elderRay();
+
+  const calculatedData = elder(ema26(ema12(useData)));
+
+  const { data, xScale, xAccessor, displayXAccessor } = xScaleProvider(
+    calculatedData
+  );
+
+  const max = xAccessor(data[data.length - 1]);
+  const min = xAccessor(data[Math.max(0, data.length - 100)]);
+  const xExtents = [min, max + 5];
+
+  const gridHeight = height - margin.top - margin.bottom;
+
+  const elderRayHeight = 100;
+  const barChartHeight = gridHeight / 4;
+  const barChartOrigin = (_: number, h: number) => [
+    0,
+    h - barChartHeight - elderRayHeight,
+  ];
+  const chartHeight = gridHeight - elderRayHeight;
+
+  const barChartExtents = (data: IOHLCData) => {
+    return data.volume;
+  };
+
+  const candleChartExtents = (data: IOHLCData) => {
+    return [data.high, data.low];
+  };
+
+  const volumeColor = (data: IOHLCData) => {
+    return data.close > data.open
+      ? "rgba(38, 166, 154, 0.3)"
+      : "rgba(239, 83, 80, 0.3)";
+  };
+
+  const volumeSeries = (data: IOHLCData) => {
+    return data.volume;
+  };
+
+  if (sampleData.length > 0) {
     return (
-      <div>
-        <ChartCanvas
-          width={width}
-          height={400}
-          ratio={ratio}
-          xScale={xScale}
-          margin={{ left: 50, right: 50, top: 10, bottom: 30 }}
-          displayXAccessor={displayXAccessor}
-          type={"svg"}
-          seriesName="MSFT"
-          data={data}
-          // @ts-ignore
-          xAccessor={(d) => d.date}
-          xScaleProvider={discontinuousTimeScaleProvider}
-          xExtents={xExtents}
+      <ChartCanvas
+        height={height}
+        ratio={ratio}
+        width={width}
+        margin={margin}
+        data={data}
+        displayXAccessor={displayXAccessor}
+        seriesName="Data"
+        xScale={xScale}
+        xAccessor={xAccessor}
+        xExtents={xExtents}
+        zoomAnchor={lastVisibleItemBasedZoomAnchor}
+      >
+        <Chart
+          id={2}
+          height={barChartHeight}
+          origin={barChartOrigin}
+          yExtents={barChartExtents}
         >
-          {/* @ts-ignore */}
-          <Chart id={1} yExtents={(d) => [d.high, d.low]}>
-            <XAxis axisAt="bottom" orient="bottom" ticks={6} />
-            <YAxis axisAt="left" orient="left" ticks={5} />
-            <CandlestickSeries />
-          </Chart>
-        </ChartCanvas>
-        See graph?
-      </div>
+          <BarSeries fillStyle={volumeColor} yAccessor={volumeSeries} />
+        </Chart>
+        <Chart id={3} height={chartHeight} yExtents={candleChartExtents}>
+          <XAxis showGridLines showTickLabel={true} />
+          <YAxis showGridLines tickFormat={pricesDisplayFormat} />
+          <CandlestickSeries />
+        </Chart>
+        <CrossHairCursor />
+      </ChartCanvas>
     );
   } else {
     return <div>Loading...</div>;
@@ -82,4 +158,4 @@ StockGraph.propTypes = {
   // type: PropTypes.oneOf(["svg", "hybrid"]).isRequired,
 };
 
-export default fitWidth(StockGraph);
+export default StockGraph;
