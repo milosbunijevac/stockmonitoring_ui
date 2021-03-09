@@ -3,8 +3,8 @@ import { timeParse } from "d3-time-format";
 import apiKey from "../apiKey.json";
 // import { IOHLCData } from "../components/Stocks/Stockgraph/Stockgraph";
 
-const getApiInfo = async () => {
-  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&apikey=${apiKey}&datatype=csv`;
+const getApiInfo = async (tickerName: string): Promise<string[]> => {
+  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${tickerName}&apikey=${apiKey}&datatype=csv`;
   const response = fetch(url)
     .then((response) => {
       return response.text();
@@ -18,7 +18,6 @@ const getApiInfo = async () => {
 
 function parseData(parse) {
   return function (d) {
-    console.log("This is d: ", d);
     d.date = parse(d.timestamp);
     d.open = +d.open;
     d.high = +d.high;

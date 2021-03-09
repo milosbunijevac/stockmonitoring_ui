@@ -15,37 +15,36 @@ import {
 import { format } from "d3-format";
 // import { timeFormat } from "d3-time-format";
 import PropTypes from "prop-types";
-import { data as sampleData } from "../Data/Data";
+// import { data as sampleData } from "../Data/Data";
 
 import { getApiInfo } from "../../../utilities/apiCall";
 
 export interface IOHLCData {
-  readonly close: number;
-  readonly date: Date;
-  readonly high: number;
-  readonly low: number;
-  readonly open: number;
-  readonly volume: number;
+  close: number;
+  date: Date;
+  high: number;
+  low: number;
+  open: number;
+  volume: number;
 }
 
 interface StockGraphProps {
-  readonly height?: number;
-  readonly dateTimeFormat?: string;
-  readonly width?: number;
-  readonly ratio?: number;
+  height?: number;
+  dateTimeFormat?: string;
+  width?: number;
+  ratio?: number;
 }
 
 // Need to parse the data correctly here.
 
 const StockGraph: React.FC<StockGraphProps> = (props) => {
-  const [useData, setUseData] = React.useState<any>(sampleData);
+  const [useData, setUseData] = React.useState<any>([]);
 
   useEffect(() => {
     const getStockData = async () => {
       // const stockData: string[] = await getApiInfo();
-      const data = await getApiInfo();
-      // console.log("this is data: ", data);
-      setUseData(data);
+      const data2 = await getApiInfo("IBM");
+      setUseData(data2);
     };
 
     getStockData();
@@ -115,7 +114,7 @@ const StockGraph: React.FC<StockGraphProps> = (props) => {
     return data.volume;
   };
 
-  if (sampleData.length > 0) {
+  if (useData.length) {
     return (
       <ChartCanvas
         height={height}

@@ -5,10 +5,11 @@ import {
   PayloadAction,
 } from "@reduxjs/toolkit";
 import { StockTickerNameState, StockTickerDataState } from "../type";
+// import { data as sampleData } from "../components/Stocks/Data/Data";
 
 const tickerInitialNameState: StockTickerNameState = { ticker: "" };
 
-const tickerInitialDataState: StockTickerDataState = { data: "" };
+const tickerInitialDataState: StockTickerDataState = { data: [] };
 
 const tickerNameSlice = createSlice({
   name: "tickerName",
@@ -24,7 +25,7 @@ const tickerDataSlice = createSlice({
   name: "tickerData",
   initialState: tickerInitialDataState,
   reducers: {
-    tickerData: (state, { payload }: PayloadAction<string>) => {
+    tickerData: (state, { payload }: PayloadAction<string[]>) => {
       state.data = payload;
     },
   },
@@ -43,4 +44,8 @@ const reducer = combineReducers({
 
 export default configureStore({
   reducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
